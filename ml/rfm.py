@@ -1,20 +1,22 @@
 import pandas as pd
 import sqlite3
 import os
+import sys
 from datetime import datetime
 
-# Build the path to the database (go up one directory from 'ml' folder, then into 'data')
-DB_PATH = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'data', 'app.db')
+# Ensure project root is in sys.path
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+import database as db
 
 def get_rfm_data():
     """
     Connects to the database and calculates Recency, Frequency, and Monetary (RFM)
     metrics for each customer based on their transaction history.
     """
-    if not os.path.exists(DB_PATH):
+    if not os.path.exists(db.DB_PATH):
         return None
         
-    conn = sqlite3.connect(DB_PATH)
+    conn = db.get_db_connection()
     
     # Query all transactions and join with customer info so we have names
     query = '''

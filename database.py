@@ -2,13 +2,19 @@ import sqlite3
 import os
 from datetime import datetime
 
-# We will store the SQLite database inside the data/ folder
-DB_PATH = os.path.join(os.path.dirname(__file__), 'data', 'app.db')
+# Database path configuration (compatible with local development and Vercel serverless)
+if os.environ.get('VERCEL') or os.environ.get('AWS_LAMBDA_FUNCTION_NAME'):
+    # Vercel serverless functions have a read-only filesystem except for /tmp
+    DB_PATH = '/tmp/app.db'
+else:
+    DB_PATH = os.path.join(os.path.dirname(__file__), 'data', 'app.db')
 
 def get_db_connection():
     """Establish and return a connection to the SQLite database."""
-    # Ensure the data directory exists before connecting
-    os.makedirs(os.path.dirname(DB_PATH), exist_ok=True)
+    # Ensure parent directory exists before connecting
+    parent_dir = os.path.dirname(DB_PATH)
+    if parent_dir:
+        os.makedirs(parent_dir, exist_ok=True)
     
     conn = sqlite3.connect(DB_PATH)
     # This allows us to access columns by name (like dictionaries) instead of index
@@ -19,6 +25,7 @@ def get_db_connection():
 
 def init_db():
     """Initialize the database by creating necessary tables if they do not exist."""
+    is_new_db = not os.path.exists(DB_PATH)
     conn = get_db_connection()
     cursor = conn.cursor()
     
@@ -49,6 +56,17 @@ def init_db():
     ''')
     
     conn.commit()
+    
+    # If freshly initialized on Vercel or in /tmp, automatically seed with initial dataset
+    if is_new_db or os.environ.get('VERCEL'):
+        cust_count = cursor.execute('SELECT COUNT(*) FROM customers').fetchone()[0] or 0
+        if cust_count == 0:
+            try:
+                from seed_customers import seed_sample_records
+                seed_sample_records()
+            except Exception as e:
+                print("Notice: Auto-seeding database failed:", e)
+                
     conn.close()
 
 def insert_customer(name, email, phone, country, created_at=None):
