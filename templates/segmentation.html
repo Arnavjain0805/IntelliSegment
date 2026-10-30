@@ -1,0 +1,148 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h2 class="mb-1">Customer Segmentation Intelligence</h2>
+        <p class="text-muted mb-0">Automated RFM behavioral clustering and actionable business segments</p>
+    </div>
+    {% if silhouette_score is not none %}
+    <div class="text-end">
+        <span class="badge {% if silhouette_score > 0.5 %}bg-success{% elif silhouette_score >= 0.25 %}bg-info text-dark{% else %}bg-warning text-dark{% endif %} fs-6 p-2">
+            Silhouette Score: {{ silhouette_score }}
+        </span>
+        <div class="small text-muted mt-1">
+            {% if silhouette_score > 0.5 %}
+                Strong Separation (High confidence)
+            {% elif silhouette_score >= 0.25 %}
+                Moderate Separation (Sound clustering)
+            {% else %}
+                Weak Separation (Overlapping tiers)
+            {% endif %}
+        </div>
+    </div>
+    {% endif %}
+</div>
+
+{% if not customers %}
+<div class="alert alert-warning shadow-sm" role="alert">
+    <h5 class="alert-heading">Insufficient Data for Segmentation</h5>
+    <p class="mb-0">{{ status_message or 'Please add at least 3 customers with purchase transactions to perform clustering.' }}</p>
+    <hr>
+    <a href="{{ url_for('customers') }}" class="btn btn-outline-dark btn-sm">Go to Customers</a>
+</div>
+{% else %}
+
+<!-- Segment Summary Cards -->
+<div class="row mb-4">
+    {% for s in summary %}
+    <div class="col-md-4 mb-3">
+        <div class="card h-100 shadow-sm border-{{ s.badge_color }}">
+            <div class="card-header bg-{{ s.badge_color }} text-white d-flex justify-content-between align-items-center">
+                <span class="fw-bold">{{ s.segment_name }}</span>
+                <span class="badge bg-light text-dark">{{ s.percentage }}%</span>
+            </div>
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-baseline mb-2">
+                    <span class="text-muted small">Total Customers:</span>
+                    <span class="fs-5 fw-bold">{{ s.customer_count }}</span>
+                </div>
+                
+                <div class="progress mb-3" style="height: 6px;">
+                    <div class="progress-bar bg-{{ s.badge_color }}" role="progressbar" style="width: {{ s.percentage }}%"></div>
+                </div>
+
+                <div class="row g-2 mb-3 text-center">
+                    <div class="col-4">
+                        <div class="p-2 border rounded bg-light">
+                            <small class="text-muted d-block">Recency</small>
+                            <span class="fw-bold small">{{ s.avg_recency }}d</span>
+                        </div>
+                    </div>
+                    <div class="col-4">
+                        <div class="p-2 border rounded bg-light">
+                            <small class="text-muted d-block">Freq</small>
+                            <span class="fw-bold small">{{ s.avg_frequency }}</span>
+                        </div>
+                    </div>
+                    <div class="col-4">
+                        <div class="p-2 border rounded bg-light">
+                            <small class="text-muted d-block">Avg Spend</small>
+                            <span class="fw-bold small">${{ "%.0f"|format(s.avg_monetary) }}</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="mb-2">
+                    <small class="text-muted d-block">Total Revenue Contribution:</small>
+                    <span class="fw-bold text-success">${{ "{:,.2f}".format(s.total_revenue) }}</span>
+                </div>
+
+                <div>
+                    <small class="text-muted d-block">Recommended Action:</small>
+                    <small class="text-dark fst-italic">{{ s.recommended_action }}</small>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+
+<!-- Customer Level Segment Breakdown Table -->
+<div class="card shadow-sm mb-5">
+    <div class="card-header bg-dark text-white d-flex justify-content-between align-items-center">
+        <h5 class="mb-0">Customer Segment Breakdown</h5>
+        <div class="d-flex align-items-center gap-2">
+            <a href="{{ url_for('export_segmentation_csv') }}" class="btn btn-outline-light btn-sm">
+                <i class="bi bi-download"></i> Export CSV
+            </a>
+            <span class="badge bg-secondary">{{ customers|length }} Total Analyzed</span>
+        </div>
+    </div>
+    <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0">
+            <thead class="table-light">
+                <tr>
+                    <th style="width: 70px;">ID</th>
+                    <th>Customer</th>
+                    <th>Recency</th>
+                    <th>Frequency</th>
+                    <th>Monetary Total</th>
+                    <th>Assigned Segment</th>
+                    <th>Action Strategy</th>
+                    <th class="text-end">Details</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for c in customers %}
+                <tr>
+                    <td><span class="badge bg-light text-dark border">#{{ c.customer_id }}</span></td>
+                    <td>
+                        <div class="fw-bold">{{ c.name }}</div>
+                        <small class="text-muted">{{ c.email }}</small>
+                    </td>
+                    <td>
+                        <span class="badge bg-light text-dark border">{{ c.Recency }} days ago</span>
+                    </td>
+                    <td>
+                        <span class="badge bg-light text-dark border">{{ c.Frequency }} order(s)</span>
+                    </td>
+                    <td>
+                        <span class="fw-bold text-success">${{ "{:,.2f}".format(c.Monetary) }}</span>
+                    </td>
+                    <td>
+                        <span class="badge bg-{{ c.BadgeColor }} p-2">{{ c.Segment }}</span>
+                    </td>
+                    <td>
+                        <small class="text-muted">{{ c.Action }}</small>
+                    </td>
+                    <td class="text-end">
+                        <a href="{{ url_for('customer_details', id=c.customer_id) }}" class="btn btn-outline-primary btn-sm">View</a>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endif %}
+{% endblock %}

@@ -1,0 +1,38 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-6">
+        <div class="card shadow-sm">
+            <div class="card-header bg-primary text-white">
+                <h4 class="mb-0">Add New Customer</h4>
+            </div>
+            <div class="card-body">
+                <form method="POST" action="{{ url_for('add_customer') }}">
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Name <span class="text-danger">*</span></label>
+                        <input type="text" name="name" class="form-control" value="{{ name|default('') }}" minlength="2" maxlength="60" placeholder="e.g. Jane Doe" required>
+                        <div class="form-text">Between 2 and 60 characters.</div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Email <span class="text-danger">*</span></label>
+                        <input type="email" name="email" class="form-control" value="{{ email|default('') }}" maxlength="100" placeholder="e.g. jane@example.com" required>
+                        <div class="form-text">Must be a valid, unique email address.</div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Phone</label>
+                        <input type="tel" name="phone" class="form-control" value="{{ phone|default('') }}" maxlength="25" placeholder="e.g. +1-555-0144">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Country</label>
+                        <input type="text" name="country" class="form-control" value="{{ country|default('') }}" maxlength="50" placeholder="e.g. United States">
+                    </div>
+                    <div class="d-flex justify-content-between mt-4">
+                        <a href="{{ url_for('customers') }}" class="btn btn-secondary">Cancel</a>
+                        <button type="submit" class="btn btn-primary fw-bold">Save Customer</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

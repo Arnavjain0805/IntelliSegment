@@ -1,0 +1,173 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-lg-9">
+        <!-- Header -->
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <div>
+                <h2 class="mb-1 fw-bold">AI Business Assistant</h2>
+                <p class="text-muted mb-0">Generative reasoning powered by real-time database intelligence</p>
+            </div>
+            <div>
+                {% if has_key %}
+                <span class="badge bg-success p-2 shadow-sm fs-6">
+                    <i class="bi bi-robot"></i> 🟢 AI Engine Online ({{ provider|capitalize }})
+                </span>
+                {% else %}
+                <span class="badge bg-warning text-dark p-2 shadow-sm fs-6">
+                    🟡 AI Engine Offline (Configure Server .env)
+                </span>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Quick Question Chips -->
+        <div class="mb-3">
+            <span class="text-muted small me-2">Suggested queries:</span>
+            <button class="btn btn-outline-secondary btn-sm rounded-pill mb-1 quick-btn" data-query="How can I suggest our standard customers to buy more frequently?">Boost Standard Customers</button>
+            <button class="btn btn-outline-secondary btn-sm rounded-pill mb-1 quick-btn" data-query="Which segment generated the most revenue?">Top revenue segment?</button>
+            <button class="btn btn-outline-secondary btn-sm rounded-pill mb-1 quick-btn" data-query="What does Silhouette Score mean?">Explain Silhouette Score</button>
+            <button class="btn btn-outline-secondary btn-sm rounded-pill mb-1 quick-btn" data-query="Who is our top spending customer?">Top customer?</button>
+            <button class="btn btn-outline-secondary btn-sm rounded-pill mb-1 quick-btn" data-query="Give me a business performance summary">Executive Summary</button>
+        </div>
+
+        <!-- Chat Container -->
+        <div class="card shadow-sm border-0 mb-4">
+            <div class="card-header bg-dark text-white d-flex justify-content-between align-items-center py-3">
+                <span class="fw-bold"><i class="bi bi-robot"></i> IntelliSegment Intelligence Advisor</span>
+                <span class="small text-light">&bull; Real-time AI Reasoning Active</span>
+            </div>
+
+            <div class="card-body p-4" id="chatWindow" style="height: 480px; overflow-y: auto; background-color: #fcfcfc;">
+                <!-- Initial Welcome Message from Assistant -->
+                <div class="d-flex mb-3">
+                    <div class="me-3">
+                        <div class="badge bg-primary rounded-circle p-2 fs-6">AI</div>
+                    </div>
+                    <div class="p-3 rounded-3 shadow-sm bg-white border flex-grow-1" style="max-width: 85%;">
+                        <div class="fw-bold text-dark mb-1">IntelliSegment Advisor</div>
+                        <p class="mb-2">Hello! I am your AI Business Intelligence Assistant. I have live access to your customer directory, sales history, and machine learning segmentation clusters.</p>
+                        <p class="mb-0 text-muted small">You can ask me open-ended business questions, strategic advice for specific segments, or explanations of data science metrics.</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Chat Input Footer -->
+            <div class="card-footer bg-white p-3 border-top">
+                <form id="chatForm" class="d-flex gap-2">
+                    <input type="text" id="userInput" class="form-control" placeholder="Ask any question about your customers, revenue, or marketing strategy..." autocomplete="off" required>
+                    <button type="submit" id="sendBtn" class="btn btn-primary px-4 fw-bold">Send</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    const chatForm = document.getElementById('chatForm');
+    const userInput = document.getElementById('userInput');
+    const chatWindow = document.getElementById('chatWindow');
+    const sendBtn = document.getElementById('sendBtn');
+
+    // Quick chip click handler
+    document.querySelectorAll('.quick-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            userInput.value = btn.getAttribute('data-query');
+            chatForm.dispatchEvent(new Event('submit'));
+        });
+    });
+
+    // Helper: append message bubble
+    function appendMessage(sender, text, isAi = false, model = '') {
+        const msgDiv = document.createElement('div');
+        msgDiv.className = 'd-flex mb-3 ' + (isAi ? '' : 'justify-content-end');
+
+        const avatar = isAi
+            ? `<div class="me-3"><div class="badge bg-primary rounded-circle p-2 fs-6">AI</div></div>`
+            : '';
+
+        const bubbleClass = isAi ? 'bg-white border text-dark' : 'bg-primary text-white';
+
+        let formattedText = text
+            .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+            .replace(/\*(.*?)\*/g, '<em>$1</em>')
+            .replace(/\[(.*?)\]\((.*?)\)/g, '<a href="$2" class="fw-bold text-decoration-underline" target="_blank">$1</a>')
+            .replace(/\n/g, '<br>');
+
+        const modelBadge = (isAi && model)
+            ? `<div class="mt-2 pt-1 border-top border-light-subtle small text-muted" style="font-size: 0.75rem;"><i class="bi bi-cpu"></i> Reasoning engine: ${model}</div>`
+            : '';
+
+        msgDiv.innerHTML = `
+            ${avatar}
+            <div class="p-3 rounded-3 shadow-sm ${bubbleClass}" style="max-width: 85%;">
+                <div class="fw-bold small mb-1 opacity-75">${sender}</div>
+                <div>${formattedText}</div>
+                ${modelBadge}
+            </div>
+        `;
+
+        chatWindow.appendChild(msgDiv);
+        chatWindow.scrollTop = chatWindow.scrollHeight;
+    }
+
+    // Helper: loading bubble
+    function showTypingIndicator() {
+        const indicator = document.createElement('div');
+        indicator.id = 'typingIndicator';
+        indicator.className = 'd-flex mb-3';
+        indicator.innerHTML = `
+            <div class="me-3"><div class="badge bg-primary rounded-circle p-2 fs-6">AI</div></div>
+            <div class="p-3 rounded-3 bg-white border text-muted shadow-sm" style="max-width: 85%;">
+                <span class="spinner-border spinner-border-sm text-primary me-2" role="status"></span>
+                <em>Thinking & analyzing live database records...</em>
+            </div>
+        `;
+        chatWindow.appendChild(indicator);
+        chatWindow.scrollTop = chatWindow.scrollHeight;
+    }
+
+    function removeTypingIndicator() {
+        const indicator = document.getElementById('typingIndicator');
+        if (indicator) indicator.remove();
+    }
+
+    // Submit handler
+    chatForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const message = userInput.value.trim();
+        if (!message) return;
+
+        appendMessage('You', message, false);
+        userInput.value = '';
+        userInput.disabled = true;
+        sendBtn.disabled = true;
+
+        showTypingIndicator();
+
+        try {
+            const response = await fetch('/api/chat', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ message: message })
+            });
+
+            const data = await response.json();
+            removeTypingIndicator();
+
+            if (data.reply) {
+                appendMessage('IntelliSegment Advisor', data.reply, true, data.model);
+            } else {
+                appendMessage('IntelliSegment Advisor', 'Sorry, I encountered an issue retrieving that information.', true);
+            }
+        } catch (err) {
+            removeTypingIndicator();
+            appendMessage('IntelliSegment Advisor', 'Connection error: Unable to communicate with server.', true);
+        } finally {
+            userInput.disabled = false;
+            sendBtn.disabled = false;
+            userInput.focus();
+        }
+    });
+</script>
+{% endblock %}
